@@ -1,0 +1,88 @@
+# -*- coding: utf-8 -*-
+
+import tensorflow as tf
+from sklearn.preprocessing import LabelBinarizer
+from sklearn.datasets import load_digits
+from sklearn.cross_validation import train_test_split
+import matplotlib.pyplot as plt
+
+digits = load_digits()
+X = digits.data
+y = digits.target
+y = LabelBinarizer().fit_transform(y)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3)
+print(X_train.shape , y_train.shape ,y_test.shape)
+
+
+# Feed-forword Neural Network
+# 定义每一层有多少个神经元
+n_layer_input = 64
+n_layer_h1 = 50
+n_layer_h2 = 50
+n_layer_output = 10
+
+# 定义待训练的神经网络
+def neural_network(inputs):
+    # 定义第一层的权重和偏置（Weights ,biases）以字典结构定义简洁整体性强
+    layer_h1_w_b = {'Weights':tf.Variable(tf.random_normal([n_layer_input , n_layer_h1])) , 'biases':tf.Variable(tf.zeros([1,n_layer_h1]) + 0.1)}
+    # 定义第二层的权重和偏置（Weights ,biases）
+    layer_h2_w_b = {'Weights':tf.Variable(tf.random_normal([n_layer_h1 , n_layer_h2])) , 'biases':tf.Variable(tf.zeros([1,n_layer_h2]) + 0.1)}
+    # 定义第三层的权重和偏置（Weights ,biases）
+    layer_output_w_b = {'Weights':tf.Variable(tf.random_normal([n_layer_h2 , n_layer_output])) , 'biases':tf.Variable(tf.zeros([1,n_layer_output]) + 0.1)}
+    
+    #Wx + b
+    layer_h1 = tf.add(tf.matmul(inputs , layer_h1_w_b['Weights']) ,layer_h1_w_b['biases'] )
+    layer_h1 = tf.nn.dropout(layer_h1 ,keep_prb)
+    layer_h1 = tf.nn.tanh(layer_h1)
+    
+    layer_h2 = tf.add(tf.matmul(layer_h1 , layer_h2_w_b['Weights']) ,layer_h2_w_b['biases'] )
+    layer_h2 = tf.nn.dropout(layer_h2 ,keep_prb)
+    layer_h2 = tf.nn.tanh(layer_h2)
+    
+    layer_output = tf.add(tf.matmul(layer_h2 , layer_output_w_b['Weights']) ,layer_output_w_b['biases'] )
+    layer_output = tf.nn.dropout(layer_output ,keep_prb)
+    layer_output = tf.nn.softmax(layer_output)
+    
+    return layer_output
+
+
+# 定义传入值维度
+keep_prb = tf.placeholder(tf.float32)
+xs = tf.placeholder(tf.float32 , [None ,n_layer_input])
+ys = tf.placeholder(tf.float32 , [None ,n_layer_output])
+
+# 使用数据训练网络
+prediction = neural_network(xs)
+cost_func = tf.reduce_mean(-tf.reduce_sum(ys*tf.log(prediction) , reduction_indices =[1]))
+optimizer = tf.train.GradientDescentOptimizer(0.6).minimize(cost_func)
+
+global prediction
+    
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    x_list=[]
+    y_list=[]
+        
+    for i in range(1000):
+        sess.run(optimizer , feed_dict = {xs:X_train , ys:y_train , keep_prb:0.6})
+        if i%50 ==0:
+            c_train = sess.run(cost_func ,feed_dict = {xs:X_train , ys:y_train , keep_prb:1} )
+            c_test = sess.run(cost_func ,feed_dict = {xs:X_test , ys:y_test , keep_prb:1} )
+                
+            y_pre = sess.run(prediction , feed_dict ={xs:X_test ,keep_prb:1})
+            print(y_pre[:1])
+            correct = tf.equal(tf.argmax(y_pre,1), tf.argmax(y_test,1))
+            accuracy = tf.reduce_mean(tf.cast(correct , tf.float32))
+            #result = sess.run(accuracy , feed_dict={xs:X_test , ys:y_test ,keep_prb:1})  #####    很重要*******************
+                
+            x_list.append(i)
+            y_list.append(c_test)
+            print(c_train , c_test ,accuracy )
+    ### 做出loss变化图
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+ax.plot(x_list, y_list)
+plt.show()
+
+
+
