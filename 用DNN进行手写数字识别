@@ -1,0 +1,61 @@
+# -*- coding: utf-8 -*-
+
+import tensorflow as tf
+from tensorflow.examples.tutorials.mnist import input_data
+import numpy as np
+import matplotlib.pyplot as plt
+
+#### 定义神经网络层
+def add_layer(inputs , in_size ,out_size ,activation_function):
+    ### 初始化 W , b
+    Weights = tf.Variable(tf.random_normal([in_size , out_size]))
+    biases = tf.Variable(tf.zeros([1,out_size]) + 0.1)
+    ### 设定计算规则（Wx + b）
+    Wx_plus_b =tf.matmul(inputs ,Weights) + biases
+    if activation_function is None :
+        outputs = Wx_plus_b
+    else:
+        outputs = activation_function(Wx_plus_b)
+    #### 返回outputs
+    return outputs
+
+
+###  传入的X ,Y 的维度
+xs = tf.placeholder(tf.float32 , [None , 784])
+ys = tf.placeholder(tf.float32 , [None , 10])
+
+###  定义每一层的运算规则
+#h1 = add_layer(xs , 784 , 50 ,activation_function = None)
+prediction = add_layer(xs ,784 , 10 , activation_function = tf.nn.softmax)
+
+### 定义loss 交叉熵
+
+cross_entropy = tf.reduce_mean(-tf.reduce_sum(ys*tf.log(prediction) , reduction_indices =[1]))
+
+### 定义优化器的优化方法
+
+train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+
+#### 开启会话
+sess = tf.Session()
+
+### 初始化结构中的参数
+sess.run(tf.global_variables_initializer())
+
+### 定义准确率输出规则
+def compute_accuracy(v_xs , v_ys):
+    global prediction
+    y_pre = sess.run(prediction , feed_dict ={xs:v_xs})
+    correct_prediction = tf.equal(tf.argmax(y_pre,1) ,tf.argmax(v_ys,1)) ### 1 是指轴
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction , tf.float32))
+    result = sess.run(accuracy , feed_dict={xs:v_xs , ys:v_ys})
+    return result
+
+####  开始训练
+for i in range(1000):
+    ### 分批次训练
+    batch_xs , batch_ys = mnist.train.next_batch(100)
+    sess.run(train_step , feed_dict = {xs:batch_xs , ys:batch_ys})
+    if i%50 ==0:
+        print(compute_accuracy(mnist.test.images, mnist.test.labels))
+
